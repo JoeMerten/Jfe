@@ -1,3 +1,6 @@
+![Jfe](Framework/res/JfeLogo-200.png)
+
+
 Jfe - Joe’s Framework for Embedded C++ Projects
 ===============================================
 
