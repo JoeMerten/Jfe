@@ -12,13 +12,19 @@
 # URL_DIR                                                ".../4.7/4.7-2012-q4-major/+download"
 # URL_BASE ".../4.7/4.7-2012-q4-major/+download/gcc-arm-none-eabi-4_7-2012q4-20121208"
 # ARCHIVE_BASENAME                             "gcc-arm-none-eabi-4_7-2012q4-20121208"
+# ARCHIVE_DIRNAME                              "gcc-arm-none-eabi-4_7-2012q4"
+# INSTALL_BASENAME                             "gcc-arm-none-eabi-4_7-2012q4"
 # INSTALL_DIR                             "/opt/gcc-arm-none-eabi-4_7-2012q4"
 
 # GCC_ARM_VERSION ist z.B. "4.7-2014-q2"
 declare GCC_ARM_VERSION=""
 declare INCLUDE_SRC="true"
 declare USE_CURL="false"
+declare RETAIN_TMP="false"
 declare BUILD_FROM_SOURCE="false"
+declare BUILD_PPA="false"
+declare BUILD_WIN="false"
+declare BUILD_NANOX="false"
 
 declare ESC=$'\e'
 declare COLOR_RED_BOLD="${ESC}[0;91;1m"
@@ -66,7 +72,7 @@ function Error {
 
 
 function Warning {
-    echo "${COLOR_YELLOW_BOLD}Warning($#): $*${COLOR_RESET}" 1>&2
+    echo "${COLOR_YELLOW_BOLD}Warning: $*${COLOR_RESET}" 1>&2
 }
 
 
@@ -87,9 +93,13 @@ declare tempfiles=()
 declare tempdirs=()
 function OnExit() {
     if [ "${#tempfiles[@]}" != "0" ] || [ "${#tempdirs[@]}" != "0" ]; then
-        echo "Cleaning up ..."
-        rm -f "${tempfiles[@]}"
-        rm -rf "${tempdirs[@]}"
+        if [ "$RETAIN_TMP" == "false" ]; then
+            echo "Cleaning up ..."
+            [ "${#tempfiles[@]}" != "0" ] && rm -f "${tempfiles[@]}"
+            [ "${#tempdirs[@]}" != "0" ] && rm -rf "${tempdirs[@]}"
+        else
+            echo "No cleanup, temporary files and directories will be retained"
+        fi
     fi
 }
 trap 'OnExit $LINENO $?' EXIT
@@ -119,18 +129,18 @@ function detectHost() {
     HOST_UBUNTU_VERSION=""
     HOST_UBUNTU_VERSION_EXT=""
     if [ "$HOST_SYSTEM" == "Linux" ]; then
-    	HOST_UBUNTU_VERSION="$(lsb_release -rs)"
-    	UNAME_M=$(uname -m)
-    	if [ "$UNAME_M" == "i686" ]; then
-    		HOST_UBUNTU_VERSION_EXT="$HOST_UBUNTU_VERSION-32"
-    	elif [ "$UNAME_M" == "x86_64" ]; then
-    		HOST_UBUNTU_VERSION_EXT="$HOST_UBUNTU_VERSION-64"
-    	else
-    		Error "Unable to obtain architecture for '$UNAME_M'"
-    	fi
-		echo "HOST_UBUNTU_VERSION     = $HOST_UBUNTU_VERSION"
-		echo "HOST_UBUNTU_VERSION_EXT = $HOST_UBUNTU_VERSION_EXT"
-	fi
+        HOST_UBUNTU_VERSION="$(lsb_release -rs)"
+        UNAME_M=$(uname -m)
+        if [ "$UNAME_M" == "i686" ]; then
+            HOST_UBUNTU_VERSION_EXT="$HOST_UBUNTU_VERSION-32"
+        elif [ "$UNAME_M" == "x86_64" ]; then
+            HOST_UBUNTU_VERSION_EXT="$HOST_UBUNTU_VERSION-64"
+        else
+            Error "Unable to obtain architecture for '$UNAME_M'"
+        fi
+        echo "HOST_UBUNTU_VERSION     = $HOST_UBUNTU_VERSION"
+        echo "HOST_UBUNTU_VERSION_EXT = $HOST_UBUNTU_VERSION_EXT"
+    fi
 }
 
 
@@ -140,13 +150,13 @@ function detectHost() {
 # \in  arr  array to search on
 ########################################################################################################################
 function isInArray() {
-	local val=("$1")
-	declare -a arr=("${!2}")
-	local e
-	for e in "${arr[@]}"; do
-		[ "$e" == "$val" ] && return 0
-	done
-	return 1
+    local val=("$1")
+    declare -a arr=("${!2}")
+    local e
+    for e in "${arr[@]}"; do
+        [ "$e" == "$val" ] && return 0
+    done
+    return 1
 }
 
 
@@ -156,7 +166,11 @@ function isInArray() {
 function ShowHelp {
     echo "Usage: $0 <toolchain-version> [options]"
     echo "Options:"
+    echo "        --retainTmp        Don't cleanup temp directory (downloads, builds, ...)"
     echo "    -b  --buildFromSrouce  Build toolchain from source (instead of use prebuild binaries)"
+    echo "        --ppa              Prepare ppa build (only affects with -b)"
+    echo "        --win              Include mingw cross build (only affects with -b)"
+    echo "        --nanox            Build newlib nano with exceptions support (only affects with -b)"
     echo "Currently supported versions for installation are:"
     egrep -o "^        [0-9]\.[0-9]-201[0-9]-q[0-9]" "$0"
     echo "or just \"latest\" to install the most recent version"
@@ -196,6 +210,7 @@ function checkPrerequisites() {
 #     URL_BASE
 #     URL_DIR
 #     ARCHIVE_BASENAME
+#     ARCHIVE_DIRNAME
 #     DOWNLOAD_PARENT_DIR  /tmp
 #     DOWNLOAD_DIR
 #     INSTALL_BASENAME
@@ -266,16 +281,26 @@ function setVersionVars() {
         ;;
     esac
 
+    # Even set ARCHIVE_DIRNAME to the (guessed) directory name which is contained in the archive
+    # For Linux and OSX, the archive itself contains a directory.
+    # The name of the directory is potential (slightly) unknown for us and the conventions differ over the releases.
+    # E.g. in
+    # - in  4.9-2015-q3: gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2 -> gcc-arm-none-eabi-4_9-2015q3
+    # - but 6.3-2017-q1: gcc-arm-none-eabi-6-2017-q1-update-linux.tar.bz2 -   > gcc-arm-none-eabi-6-2017-q1-update
+    # (But even further a bit different in the src archives, which e.g. contains the date in the 4.9 release ...)
     URL_DIR="$(dirname "$URL_BASE")"
     ARCHIVE_BASENAME="$(basename "$URL_BASE")"
     if [ "$INSTALL_BASENAME" != "" ]; then
         # From beginning with gcc 6.3, ARCHIVE_BASENAME became something like: "gcc-arm-none-eabi-6-2017-q1-update"
         # So, I'd decided to set INSTALL_BASENAME manually (see switch above)
+        ARCHIVE_DIRNAME="$ARCHIVE_BASENAME"
         echo -n
     elif [ "${ARCHIVE_BASENAME:28:3}" == "-20" ]; then
         # as long as the url was something like "gcc-arm-none-eabi-6_2-2016q4-20161216"
+        # but note that inside of the archive, we find a directory named "gcc-arm-none-eabi-6_2-2016q4"
         # we just strip away that "-20161216" to got "gcc-arm-none-eabi-6_2-2016q4"
-        INSTALL_BASENAME="${ARCHIVE_BASENAME:0:28}"
+        ARCHIVE_DIRNAME="${ARCHIVE_BASENAME:0:28}"
+        INSTALL_BASENAME="$ARCHIVE_DIRNAME"
     else
         Error "Errornous name \"$ARCHIVE_BASENAME\""
     fi
@@ -291,6 +316,7 @@ function setVersionVars() {
         echo "URL_DIR          = $URL_DIR"
         echo "URL_BASE         = $URL_BASE"
         echo "ARCHIVE_BASENAME = $ARCHIVE_BASENAME"
+        echo "ARCHIVE_DIRNAME  = $ARCHIVE_DIRNAME"
         echo "DOWNLOAD_DIR     = $DOWNLOAD_DIR"
         echo "INSTALL_BASENAME = $INSTALL_BASENAME"
         echo "INSTALL_DIR      = $INSTALL_DIR"
@@ -329,7 +355,7 @@ function download() {
     [ "$USE_CURL" == "true" ] && download="curl -LO"
 
     [ "$INCLUDE_SRC" == "true"   ] && $download "${URL_BASE}-src.tar.bz2"
-    if [ "BUILD_FROM_SOURCE" == "false" ]; then
+    if [ "$BUILD_FROM_SOURCE" == "false" ]; then
         [ "$HOST_SYSTEM" == "Linux"  ] && $download "${URL_BASE}-linux.tar.bz2"
         [ "$HOST_SYSTEM" == "Darwin" ] && $download "${URL_BASE}-mac.tar.bz2"
         [ "$HOST_SYSTEM" == "Cygwin" ] && $download "${URL_BASE}-win32.zip"
@@ -359,17 +385,17 @@ function download() {
 # Both above noted things are currently not handled here.
 ########################################################################################################################
 function checkUbuntuPackages() {
-	if [ "${#REBUILD_TESTED_UBUNTU_VERSIONS[@]}" == "0" ]; then
-		Warning "Build from source for $GCC_ARM_VERSION is currently not tested for Ubuntu $HOST_UBUNTU_VERSION_EXT host"
-	elif ! isInArray "$HOST_UBUNTU_VERSION_EXT" REBUILD_TESTED_UBUNTU_VERSIONS[@]; then
-		Warning "Build from source for $GCC_ARM_VERSION is currently not tested for Ubuntu $HOST_UBUNTU_VERSION_EXT host but only for: ${REBUILD_TESTED_UBUNTU_VERSIONS[*]}"
-	fi
-	if [ "${#REBUILD_REQUIRED_UBUNTU_PACKAGES[@]}" == "0" ]; then
-		Warning "No required ubuntu packages defined for building $GCC_ARM_VERSION"
-		return 0
-	fi
+    if [ "${#REBUILD_TESTED_UBUNTU_VERSIONS[@]}" == "0" ]; then
+        Warning "Build from source for $GCC_ARM_VERSION is currently not tested for Ubuntu $HOST_UBUNTU_VERSION_EXT host"
+    elif ! isInArray "$HOST_UBUNTU_VERSION_EXT" REBUILD_TESTED_UBUNTU_VERSIONS[@]; then
+        Warning "Build from source for $GCC_ARM_VERSION is currently not tested for Ubuntu $HOST_UBUNTU_VERSION_EXT host but only for: ${REBUILD_TESTED_UBUNTU_VERSIONS[*]}"
+    fi
+    if [ "${#REBUILD_REQUIRED_UBUNTU_PACKAGES[@]}" == "0" ]; then
+        Warning "No required ubuntu packages defined for building $GCC_ARM_VERSION"
+        return 0
+    fi
 
-	#REBUILD_REQUIRED_UBUNTU_PACKAGES+=(asdf)              ; # just for this script function testing
+    #REBUILD_REQUIRED_UBUNTU_PACKAGES+=(asdf)              ; # just for this script function testing
     #REBUILD_REQUIRED_UBUNTU_PACKAGES+=(kimwitu kimwitu++) ; # just for this script function testing
     #local allAvailable=($(apt-cache pkgnames))
     local notInstalled=()
@@ -377,28 +403,28 @@ function checkUbuntuPackages() {
     local notAvailable=()
     for pkg in "${REBUILD_REQUIRED_UBUNTU_PACKAGES[@]}"; do
         # looking for already installed packages
-      	# if dpkg -l "$pkg" >/dev/null 2>&1; then hmm, wont work reliable
-				# apt-cache policy outputs a couple of lines including e.g.
-		#    "  Installed: (none)"
-		# or "N: Unable to locate package …"
-		local status="$(LANG= apt-cache policy "$pkg" | egrep "^  Installed: " || echo "UNAVAILABLE")"
-		# Note that e.g. apt-cache policy guile-1.6 returns "  Installed: (none)" but also "  Candidate: (none)"
-		[ "$status" == "  Installed: (none)" ] && LANG= apt-cache policy "$pkg" | egrep "^  Candidate: \(none\)$" && status="UNAVAILABLE"
-		#echo "status($pkg)=\"$status\""
-		if [ "$status" == "UNAVAILABLE" ]; then
+        # if dpkg -l "$pkg" >/dev/null 2>&1; then hmm, wont work reliable
+        # apt-cache policy outputs a couple of lines including e.g.
+        #    "  Installed: (none)"
+        # or "N: Unable to locate package …"
+        local status="$(LANG= apt-cache policy "$pkg" | egrep "^  Installed: " || echo "UNAVAILABLE")"
+        # Note that e.g. apt-cache policy guile-1.6 returns "  Installed: (none)" but also "  Candidate: (none)"
+        [ "$status" == "  Installed: (none)" ] && LANG= apt-cache policy "$pkg" | egrep "^  Candidate: \(none\)$" && status="UNAVAILABLE"
+        #echo "status($pkg)=\"$status\""
+        if [ "$status" == "UNAVAILABLE" ]; then
             notInstalled+=($pkg)
-			notAvailable+=($pkg)
-		elif [ "$status" == "  Installed: (none)" ]; then
+            notAvailable+=($pkg)
+        elif [ "$status" == "  Installed: (none)" ]; then
             # package not installed
             notInstalled+=($pkg)
             available+=($pkg)
-		else
-			# package seems to be installed, nothing to do
-			echo -n
-		fi
+        else
+            # package seems to be installed, nothing to do
+            echo -n
+        fi
 
-		# --- old discarded code ---
-		#if true; then
+        # --- old discarded code ---
+        #if true; then
         #    # package seems to be installed, nothing to do
         #    echo -n
         #else
@@ -406,7 +432,7 @@ function checkUbuntuPackages() {
         #    notInstalled+=($pkg)
         #    # Note, that "apt-cache search --names-only" won't work with package "g++" (but works for e.g. " kimwitu++"?!)
         #    # local search=$(apt-cache search --names-only '^'"$pkg"'$')
-		#	local search=""; for avpkg in "${allAvailable[@]}"; do if [ "$pkg" == "$avpkg" ]; then search="true"; break; fi; done
+        #   local search=""; for avpkg in "${allAvailable[@]}"; do if [ "$pkg" == "$avpkg" ]; then search="true"; break; fi; done
         #    if [ "$search" != "" ]; then
         #        available+=($pkg)
         #    else
@@ -460,10 +486,10 @@ function checkUbuntuPackages() {
 # Check for prerequisites required for toolchain rebuild
 ########################################################################################################################
 function checkBuildPrerequisites() {
-	local ubuntuVersion="$(lsb_release -rs)"
-	echo "Detected Ubuntu version is $ubuntuVersion"
+    local ubuntuVersion="$(lsb_release -rs)"
+    echo "Detected Ubuntu version is $ubuntuVersion"
 
-	[ "$HOST_SYSTEM" == "Linux" ] && checkUbuntuPackages
+    [ "$HOST_SYSTEM" == "Linux" ] && checkUbuntuPackages
 }
 
 ########################################################################################################################
@@ -472,33 +498,70 @@ function checkBuildPrerequisites() {
 # See also How-to-build-toolchain.pdf e.g. from inside the source packages.
 ########################################################################################################################
 function buildToolchain() {
-	[ "$HOST_SYSTEM" != "Linux" ] && Error "Sorry, your host system $HOST_SYSTEM is currently not supported for the build from source feature"
-	[ "$DOWNLOAD_DIR" == "" ] && Error "Download directory not specified"
-	[ -d "$DOWNLOAD_DIR" ] || Error "Download directory $DOWNLOAD_DIR dont exist"
+    # 4.9, evtl. nur für ppa build: libmpc-dev
+                    #--with-gmp=$BUILDDIR_NATIVE/host-libs/usr   ?
+                    #--with-mpfr=$BUILDDIR_NATIVE/host-libs/usr  ?
+                    #--with-mpc=$BUILDDIR_NATIVE/host-libs/usr   ?
+    # --build_type=ppa --skip_steps=manual,gdb-with-python,mingw32,mingw32-gdb-with-python
+    #   find: invalid mode '+111'   nach ca. 50min
+    # --skip_steps=manual,gdb-with-python,mingw32,mingw32-gdb-with-python
 
-	echo "Unpacking source package ..."
+    # guile-1.6 versus guile-1.8 wenn Ubuntu >= 12.04
+
+    [ "$HOST_SYSTEM" != "Linux" ] && Error "Sorry, your host system $HOST_SYSTEM is currently not supported for the build from source feature"
+    [ "$DOWNLOAD_DIR" == "" ] && Error "Download directory not specified"
+    [ -d "$DOWNLOAD_DIR" ] || Error "Download directory $DOWNLOAD_DIR dont exist"
+
+    echo "Unpacking source package ..."
     mkdir -p "$DOWNLOAD_DIR/src"
     tar -xjf "$DOWNLOAD_DIR/$ARCHIVE_BASENAME-src.tar.bz2" -C"$DOWNLOAD_DIR/src"
 
-	local buildDir="$DOWNLOAD_DIR/src/$ARCHIVE_BASENAME"
-	pushd "$buildDir" >/dev/null
+    local buildDir="$DOWNLOAD_DIR/src/$ARCHIVE_BASENAME"
+    pushd "$buildDir" >/dev/null
 
-	echo "Unpacking source archives ..."
-	cd src
-	find -name '*.tar.*' | xargs -I% tar -xf %
-	cd ..
+    if [ "$HOST_SYSTEM" == "Linux" ]; then
+        # fix "find: invalid mode '+111'" in e.g. 4.9-2015-q3
+        # not required in at least 6.3-2017-q1
+        echo "patching build-toolchain.sh"
+        sed -i 's/\+111/\/111/g' build-toolchain.sh
+        [ "$BUILD_NANOX" == "true" ] && sed -i 's/-fno-exceptions//g' build-toolchain.sh
+    fi
 
-	# the toolchain build scripts have trouble with some environment variables which might be set in kubuntu, eg. PULSE_PROP_OVERRIDE_application.icon_name
-	local unsetEnv=()
-	unsetEnv+=(--unset=PULSE_PROP_OVERRIDE_application.icon_name)
-	unsetEnv+=(--unset=PULSE_PROP_OVERRIDE_application.name)
-	unsetEnv+=(--unset=PULSE_PROP_OVERRIDE_application.version)
-	env "${unsetEnv[@]}" bash -c "./build-prerequisites.sh --skip_steps=mingw32"
-	env "${unsetEnv[@]}" bash -c "./build-toolchain.sh --skip_steps=mingw32"
-	echo "---"
-	ls -l
-	echo "---"
-	popd >/dev/null
+    local buildPrerequisitesParams=""
+    local buildToolchainParams=""
+    if [ "$BUILD_PPA" != "false" ]; then
+        buildToolchainParams+=" --build_type=ppa"
+    fi
+    if [ "$BUILD_WIN" == "false" ]; then
+        buildPrerequisitesParams+=" --skip_steps=mingw32"
+        buildToolchainParams+=" --skip_steps=mingw32"
+    fi
+    if true; then
+        # Old toolchain builds (e.g. 4.9-2015-q3) might be bricked on newer ubuntu versions regarding pdf generation.
+        # So we need to skip this.
+        buildToolchainParams+=" --skip_steps=manual"
+    fi
+
+    echo "Unpacking source archives ..."
+    cd src
+    find -name '*.tar.*' | xargs -I% tar -xf %
+    cd ..
+
+    # the toolchain build scripts have trouble with some environment variables which might be set in kubuntu, eg. PULSE_PROP_OVERRIDE_application.icon_name
+    local unsetEnv=()
+    # TODO: Should generic unset all envvars which includes e.g. dots
+    unsetEnv+=(--unset=PULSE_PROP_OVERRIDE_application.icon_name)
+    unsetEnv+=(--unset=PULSE_PROP_OVERRIDE_application.name)
+    unsetEnv+=(--unset=PULSE_PROP_OVERRIDE_application.version)
+    echo "========== build-prerequisites.sh =========="
+    env "${unsetEnv[@]}" bash -c "./build-prerequisites.sh $buildPrerequisitesParams"
+    echo "========== build-toolchain.sh =========="
+    env "${unsetEnv[@]}" bash -c "./build-toolchain.sh $buildToolchainParams"
+
+    echo "---"
+    ls -l
+    echo "---"
+    popd >/dev/null
 }
 
 
@@ -525,12 +588,26 @@ function install() {
 
     echo "installing to $INSTALL_DIR ..."
 
-    [ "$HOST_SYSTEM" == "Linux"  ] && $maybeSudo tar -xjf "$DOWNLOAD_DIR/$ARCHIVE_BASENAME-linux.tar.bz2" -C"$INSTALL_PARENT_DIR"
-    [ "$HOST_SYSTEM" == "Darwin" ] && $maybeSudo tar -xjf "$DOWNLOAD_DIR/$ARCHIVE_BASENAME-mac.tar.bz2"   -C"$INSTALL_PARENT_DIR"
-    [ "$HOST_SYSTEM" == "Cygwin" ] && $maybeSudo /usr/bin/unzip -q "$DOWNLOAD_DIR/$ARCHIVE_BASENAME-win32.zip"   -d"$INSTALL_DIR"
-    # From beginning with gcc 6.3, the archive will be extracted to something like "/opt/gcc-arm-none-eabi-6-2017-q1-update"
-    # but we want to name it like "gcc-arm-none-eabi-6_3-2017q1" instead.
-    [ "$HOST_SYSTEM" != "Cygwin" ] && [ "$ARCHIVE_BASENAME" != "$INSTALL_BASENAME" ] && $maybeSudo mv "$INSTALL_PARENT_DIR/$ARCHIVE_BASENAME" "$INSTALL_DIR"
+    if [ "$HOST_SYSTEM" == "Cygwin" ]; then
+        # On Cygwin, we can unpack the files directly into $INSTALL_DIR
+        $maybeSudo /usr/bin/unzip -q "$DOWNLOAD_DIR/$ARCHIVE_BASENAME-win32.zip" -d"$INSTALL_DIR"
+    else
+        # For Linux and OSX, the archive itself contains a directory.
+        # The name of the directory is potential (slightly) unknown for us and the conventions differ over the releases.
+        # E.g.
+        # - in  4.9-2015-q3: gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2 -> gcc-arm-none-eabi-4_9-2015q3
+        # - but 6.3-2017-q1: gcc-arm-none-eabi-6-2017-q1-update-linux.tar.bz2    -> gcc-arm-none-eabi-6-2017-q1-update
+        # - and 4.9-2015-q3: gcc-arm-none-eabi-4_9-2015q3-20150921-src.tar.bz2   -> gcc-arm-none-eabi-4_9-2015q3-20150921
+        # - but 6.3-2017-q1: gcc-arm-none-eabi-6-2017-q1-update-src.tar.bz2      -> gcc-arm-none-eabi-6-2017-q1-update
+        # TODO: Maybe we want to change the INSTALL_BASENAME to something like "gcc-arm-none-eabi-4_9-2015q3-nanox" and
+        #       need to strictly avoid touching "gcc-arm-none-eabi-4_9-2015q3" in any way!
+        #       Seems that we have to unpack into a tmp directory for this.
+        [ "$HOST_SYSTEM" == "Linux"  ] && $maybeSudo tar -xjf "$DOWNLOAD_DIR/$ARCHIVE_BASENAME-linux.tar.bz2" -C"$INSTALL_PARENT_DIR"
+        [ "$HOST_SYSTEM" == "Darwin" ] && $maybeSudo tar -xjf "$DOWNLOAD_DIR/$ARCHIVE_BASENAME-mac.tar.bz2"   -C"$INSTALL_PARENT_DIR"
+        # From beginning with gcc 6.3, the archive will be extracted to something like "/opt/gcc-arm-none-eabi-6-2017-q1-update"
+        # but we want to name it like "gcc-arm-none-eabi-6_3-2017q1" instead.
+        [ "$ARCHIVE_DIRNAME" != "$INSTALL_BASENAME" ] && $maybeSudo mv "$INSTALL_PARENT_DIR/$ARCHIVE_DIRNAME" "$INSTALL_DIR"
+    fi
 
     # checking if the expected folder was created
     [ -d "$INSTALL_DIR" ] || Error "Installing to $INSTALL_DIR failed for unknown reason"
@@ -564,9 +641,15 @@ function install() {
 # Remove temporary files
 ########################################################################################################################
 function cleanup() {
-    echo "Removing temporary directories & files from $DOWNLOAD_DIR"
-    #rm -rf "$DOWNLOAD_DIR"
-    tempdirs=()
+    if [ "$DOWNLOAD_DIR" != "" ]; then
+        if [ "$RETAIN_TMP" == "false" ]; then
+            echo "Removing temporary directories & files from $DOWNLOAD_DIR"
+            rm -rf "$DOWNLOAD_DIR"
+        else
+            echo "Retaining temporary directories & files in $DOWNLOAD_DIR"
+        fi
+            tempdirs=()
+    fi
 }
 
 
@@ -583,8 +666,16 @@ while (("$#")); do
     if [ "$1" == "?" ] || [ "$1" == "-?" ] || [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ]; then
         ShowHelp
         exit 0
+    elif [ "$1" == "--retainTmp" ]; then
+        RETAIN_TMP="true"
     elif [ "$1" == "-b" ] || [ "$1" == "--buildFromSrouce" ]; then
         BUILD_FROM_SOURCE="true"
+    elif [ "$1" == "--ppa" ]; then
+        BUILD_PPA="true"
+    elif [ "$1" == "--win" ]; then
+        BUILD_WIN="true"
+    elif [ "$1" == "--nanox" ]; then
+        BUILD_NANOX="true"
     elif [ "$GCC_ARM_VERSION" == "" ]; then
         GCC_ARM_VERSION="$1"
     else
@@ -614,11 +705,11 @@ fi
 detectHost
 checkPrerequisites
 setVersionVars
-#download
+download
 if [ "$BUILD_FROM_SOURCE" == "true" ]; then
     checkBuildPrerequisites
     buildToolchain
 fi
-#install
+install
 cleanup
 echo "finish"
