@@ -272,6 +272,8 @@ function setVersionVars() {
                      # sudo apt-get -f install -y build-essential …
                      REBUILD_REQUIRED_UBUNTU_PACKAGES_MINGW=(gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686)
                      REBUILD_REQUIRED_UBUNTU_PACKAGES=(build-essential autoconf autogen bison dejagnu flex flip gawk git gperf gzip nsis openssh-client p7zip-full perl python-dev libisl-dev scons tcl texinfo tofrodos wget zip)
+                    # configure: error: Building GCC requires GMP 4.2+, MPFR 2.4.0+ and MPC 0.8.0+.
+                    # libgmpv4-dev?
                      # TODO: Check if texlive is really required
                      #REBUILD_REQUIRED_UBUNTU_PACKAGES=(texlive texlive-extra-utils)
                      REBUILD_TESTED_UBUNTU_VERSIONS=(14.04-64 16.04-64)
