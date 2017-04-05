@@ -26,7 +26,8 @@ JLINK_SN=""
 DEVICE=""
 IF=""
 SPEED=""
-SPEED="12000"
+# 36HMz has been recommended by segger for e.g. Stm42F4 and Max32550
+SPEED="36000"
 PORT=""
 #PORT="2331"
 
@@ -88,7 +89,7 @@ done
 # Jlink Installationsverzeichnis bestimmen
 JLINK_INSTALL_DIR="$(readlink "$(which JLinkGDBServer)")"
 [ "$JLINK_INSTALL_DIR" != "" ] && JLINK_INSTALL_DIR="$(dirname "$JLINK_INSTALL_DIR")"
-# Rtos Plugin Verzeichnis bestimmen, gibt's erst ab ca. Version 5.42
+# Determine Segger rtos plugin directory, supported from about version 5.42
 JLINK_PLUGIN_DIR=""
 [ "$JLINK_INSTALL_DIR" != "" ] && test -d "$JLINK_INSTALL_DIR/GDBServer" && JLINK_PLUGIN_DIR="$JLINK_INSTALL_DIR/GDBServer"
 
@@ -99,8 +100,9 @@ JLINK_PARAMS=()
 [ "$SPEED"    != "" ] && JLINK_PARAMS+=("-speed"  "$SPEED")
 [ "$PORT"     != "" ] && JLINK_PARAMS+=("-port"   "$PORT")
 JLINK_PARAMS+=("-noir")
-#[ "$JLINK_PLUGIN_DIR" != "" ] && JLINK_PARAMS+=("-rtos" "$JLINK_PLUGIN_DIR/RTOSPlugin_FreeRTOS.so")
-#JLINK_PARAMS+=("-rtos" "GDBServer/RTOSPlugin_FreeRTOS.so")
+# "$JLINK_PLUGIN_DIR" != "" ] && JLINK_PARAMS+=("-rtos" "$JLINK_PLUGIN_DIR/RTOSPlugin_FreeRTOS.so")
+# Some older versions of JlinkGdbserver need to have workingdir = installdir to make -rtos option work
+#[ "$JLINK_PLUGIN_DIR" != "" ] && cd "$JLINK_INSTALL_DIR" && JLINK_PARAMS+=("-rtos" "GDBServer/RTOSPlugin_FreeRTOS.so")
 
 while true; do
     clear
