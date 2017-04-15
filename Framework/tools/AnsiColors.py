@@ -28,7 +28,7 @@
 # ├─────────────────┼──────┼───────┼────────┼────────┼───────┼─────────┼─────────┼────────┼────────┼─────────┼─────────┼─────┼──────┼───────┼────────┼────────┼───────┤
 # │ Eclipse         │  ok  │   -   │   ok   │   ok   │   -   │   ok    │   ok    │   ok   │   ok   │   ok    │   ok    │ ok  │  -   │  ok   │   -    │   -    │  ok   │
 # ├─────────────────┼──────┼───────┼────────┼────────┼───────┼─────────┼─────────┼────────┼────────┼─────────┼─────────┼─────┼──────┼───────┼────────┼────────┼───────┤
-# │ Jenkins         │  ok  │   -   │   -    │   ok   │   -   │    -    │   ok*   │   ok   │   -    │    -    │    -    │  -  │  -   │   -   │   -    │   -    │partial│
+# │ Jenkins         │  ok  │   -   │   ok   │   ok   │   -   │   ok    │   ok*   │   ok   │   ok   │   ok    │   ok    │ ok  │  -   │  ok   │   -    │   ok   │  ok   │
 # ╰─────────────────┴──────┴───────┴────────┴────────┴───────┴─────────┴─────────┴────────┴────────┴─────────┴─────────┴─────┴──────┴───────┴────────┴────────┴───────╯
 # Notes / Issues:
 # ⚫ Kubuntu 16.04 konsole
@@ -51,10 +51,8 @@
 #   • conceal text became visible when selected and can be copied into clipboard
 #   • for rgb colors, need at least version 1.3.5
 # ⚫ Jenkins AnsiColor
-#   • version 0.4.3
+#   • version 0.5.0
 #   • conceal suppresses output completely, there is no placeholder (e.g. whitespace) output
-#   • reset single attributes don't works with conceal (fixed in version 0.4.4)
-#   • version 0.4.4 will got much more ansi attribute and color functionality
 # ⚫ Mac XcodeColors
 #   • Still no Ansi support, see https://github.com/robbiehanson/XcodeColors/issues/66
 ########################################################################################################################
