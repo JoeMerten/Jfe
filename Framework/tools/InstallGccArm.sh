@@ -279,6 +279,13 @@ function setVersionVars() {
                      REBUILD_TESTED_UBUNTU_VERSIONS=(14.04-64 16.04-64)
                      ;;
 
+        # hmm, changed naming conventions again ...
+        # The download link now seems to be like: "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2"
+        # But it seems that "https://developer.arm.com/-/media/..." also still works
+        6.3-2017-q2) URL_BASE="https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update"
+                     INSTALL_BASENAME="gcc-arm-none-eabi-6_3-2017q2"
+                     ;;
+
         *) Error "Sorry, version \"$GCC_ARM_VERSION\" is currently not supported"
         ;;
     esac
@@ -688,7 +695,7 @@ while (("$#")); do
     shift
 done
 
-[ "$GCC_ARM_VERSION" == "latest" ] && GCC_ARM_VERSION="6.3-2017-q1"
+[ "$GCC_ARM_VERSION" == "latest" ] && GCC_ARM_VERSION="6.3-2017-q2"
 
 if [ "$GCC_ARM_VERSION" == "" ]; then
     echo "Please specify toolchain version, e.g. \"4.9-2015-q2\"." >/dev/stderr
