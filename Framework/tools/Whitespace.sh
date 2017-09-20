@@ -51,6 +51,26 @@ declare ALLOW_TABS_CONSEQUENT=""
 declare TAB=$'\t'
 declare CR=$'\r'
 
+function CheckBom {
+    local filename="$1"
+    if [ "$MODIFY" == "" ]; then
+        Warning "$filename has BOM"
+        return
+    fi
+
+    Info "Remove BOM from $filename"
+    # Alternativen:
+    # awk '{if(NR==1)sub(/^\xef\xbb\xbf/,"");print}' $filename"
+    # sed -i -e '1s/^\xEF\xBB\xBF//' $filename"
+    if ! sed -i $'1s/^\uFEFF//' "$filename"; then
+        Fatal "Error $? while removing BOM from $filename"
+    fi
+
+    if file "$filename" | grep -q "(with BOM)"; then
+        Error "Failed removing BOM from $filename"
+    fi
+}
+
 function CheckLineend {
     local filename="$1"
 
@@ -293,7 +313,7 @@ function Test_CheckAndRemoveFileTypePart {
     Test_Check "$(CheckAndRemoveFileTypePart  "ISO-8859 English text, with CRLF line terminators"                       "ISO-8859"                       )"   "English text, with CRLF line terminators"
     Test_Check "$(CheckAndRemoveFileTypePart  "ISO-8859 C program text, with CRLF line terminators"                     "ISO-8859"                       )"   "C program text, with CRLF line terminators"
     Test_Check "$(CheckAndRemoveFileTypePart  "Non-ISO extended-ASCII text, with CRLF line terminators"                 "Non-ISO extended-ASCII"         )"   "text, with CRLF line terminators"
-    Test_Check "$(CheckAndRemoveFileTypePart  "Non-ISO extended-ASCII C program text, with CRLF line terminators"        "with CRLF line terminators"    )"   "Non-ISO extended-ASCII C program text"
+    Test_Check "$(CheckAndRemoveFileTypePart  "Non-ISO extended-ASCII C program text, with CRLF line terminators"       "with CRLF line terminators"     )"   "Non-ISO extended-ASCII C program text"
     Test_CheckAndRemoveFileTypePart_ReturnAlways_0="false"
 }
 Test_CheckAndRemoveFileTypePart
@@ -327,6 +347,7 @@ function DoFile {
     local iso8859="false"
     local ascii="false"
     local utf8="false"
+    local bom="false"
 
     #strippedType="$(CheckAndRemoveFileTypePart "$strippedType" "HTML document"                  )"  && htmlDoc="true"    # sollte als erstes bleiben, siehe obige Tests
     strippedType="$(CheckAndRemoveFileTypePart "$strippedType" "with CRLF, LF line terminators" )"  && crlfAndlf="true"
@@ -339,6 +360,10 @@ function DoFile {
     strippedType="$(CheckAndRemoveFileTypePart "$strippedType" "ISO-8859"                       )"  && iso8859="true"
     strippedType="$(CheckAndRemoveFileTypePart "$strippedType" "ASCII"                          )"  && ascii="true"
     strippedType="$(CheckAndRemoveFileTypePart "$strippedType" "UTF-8 Unicode"                  )"  && utf8="true"
+    strippedType="$(CheckAndRemoveFileTypePart "$strippedType" "(with BOM)"                     )"  && bom="true"
+
+#*** Error: ./js/st10web-util.js has unhandled type "HTML document, UTF-8 Unicode (with BOM) text, with CRLF line terminators" /  "HTML document, (with BOM) text"
+
 
     #Trace "$filename: $type / $strippedType"
 
@@ -419,6 +444,7 @@ function DoFile {
             return 1
     esac
 
+    [ "$bom" == "true" ] && CheckBom "$filename"
     CheckLineend "$filename"
     CheckTabs "$filename"
     CheckTrailingWhitespace "$filename"
@@ -601,6 +627,11 @@ FILE_PATTERNS+=('.*\.xml')
 FILE_PATTERNS+=('.*\.classpath')
 FILE_PATTERNS+=('.*\.project')
 
+# zus. für Html und Javascript
+FILE_PATTERNS+=('.*\.htm')
+FILE_PATTERNS+=('.*\.html')
+FILE_PATTERNS+=('.*\.css')
+FILE_PATTERNS+=('.*\.js')
 
 #DIRS=("Lib/Stm/Stm32F10x_StdPeriph_Lib_V3.5.0/Libraries")
 #FILE_PATTERNS=(".*")
