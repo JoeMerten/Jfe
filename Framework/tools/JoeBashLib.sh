@@ -53,7 +53,7 @@ declare   LIGHT="${ESC}[1m"
 #    test -t 1 && tput bold; tput setf 4                                 ## red bold
 #    echo -e "\n(!) EXIT HANDLER:\n"
 ########################################################################################################################
-function NoColor {
+function NoColor() {
     BLACK=""; MAROON=""; GREEN=""; OLIVE=""; NAVY=""; PURPLE="" TEAL="" SILVER=""; GRAY=""
     RED=""; LIME=""; YELLOW=""; BLUE=""; FUCHSIA=""; AQUA=""; WHITE=""; NORMAL=""; LIGHT=""
     LOG_COLOR_FATAL=""; LOG_COLOR_ERROR=""
@@ -82,7 +82,7 @@ set -o errexit   ## set -e : exit the script if any statement returns a non-true
 # Terminalfarben restaurieren, ggf. Childprozesse beenden et cetera
 ########################################################################################################################
 declare SHUTTING_DOWN=
-function StopScript {
+function StopScript() {
     SHUTTING_DOWN="true"
     local exitcode="$1"
 
@@ -98,7 +98,7 @@ function StopScript {
 ########################################################################################################################
 # Terminalfarben restaurieren, wenn Abbruch via Ctrl+C
 ########################################################################################################################
-function OnCtrlC {
+function OnCtrlC() {
     [ "$SHUTTING_DOWN" != "" ] && return 0
     echo "${RED}[*** interrupted ***]${NORMAL}" >&2
     # damit bei Ctrl+C auch alle Childprozesse beendet werden etc.
@@ -180,30 +180,30 @@ declare  LOG_COLOR_INFO="${TEAL}"
 declare LOG_COLOR_DEBUG="${GREEN}"
 declare LOG_COLOR_TRACE="${BLUE}"
 
-function Fatal {
+function Fatal() {
     echo "${LOG_COLOR_FATAL}*** Fatal: $*${NORMAL}" >&2
     StopScript 2
     echo "+++++++++++++++++++++++++++++++"
 }
 
-function Error {
+function Error() {
     echo "${LOG_COLOR_ERROR}*** Error: $*${NORMAL}" >&2
 }
 
-function Warning {
+function Warning() {
     echo "${LOG_COLOR_WARN}Warning: $*${NORMAL}" >&2
 }
 
 
-function Info {
+function Info() {
     echo "${LOG_COLOR_INFO}Info: $*${NORMAL}"
 }
 
-function Debug {
+function Debug() {
     echo "${LOG_COLOR_DEBUG}Debug: $*${NORMAL}" >&2
 }
 
-function Trace {
+function Trace() {
     echo "${LOG_COLOR_TRACE}Trace: $*${NORMAL}" >&2
 }
 
@@ -227,7 +227,7 @@ function Trace {
 #-----------------------------------------------------------------------------------------------------------------------
 # Vergleiche die beiden übergebenen Strings und gibt bei Ungleichheit eine Fehlermeldung aus
 ########################################################################################################################
-function Test_Check {
+function Test_Check() {
     local actual="$1"
     local expected="$2"
     if [ "$actual" != "$expected" ]; then
@@ -276,7 +276,7 @@ function detectHost() {
 # TODO: Eigentlich nicht mehr erforderlich, da die Bash das selbst kann, z.B.:
 #    printf "%'d" -123456789
 ########################################################################################################################
-function WithDots {
+function WithDots() {
     local RET="$1"
     local IDX
     local VORZ=""
@@ -309,7 +309,7 @@ function WithDots {
     echo "$RET"
 }
 
-function JoeBashLib_Test_WithDots {
+function JoeBashLib_Test_WithDots() {
     Test_Check "$(WithDots           "")"              ""
     Test_Check "$(WithDots          "0")"             "0"
 
@@ -354,26 +354,26 @@ function JoeBashLib_Test_WithDots {
 #-----------------------------------------------------------------------------------------------------------------------
 # siehe auch: http://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-bash-variable
 ########################################################################################################################
-function Trim {
+function Trim() {
     local var="$1"
     var="${var#"${var%%[![:space:]]*}"}"   # remove leading whitespace characters
     var="${var%"${var##*[![:space:]]}"}"   # remove trailing whitespace characters
     echo "$var"
 }
 
-function TrimLeft {
+function TrimLeft() {
     local var="$1"
     var="${var#"${var%%[![:space:]]*}"}"   # remove leading whitespace characters
     echo "$var"
 }
 
-function TrimRight {
+function TrimRight() {
     local var="$1"
     var="${var%"${var##*[![:space:]]}"}"   # remove trailing whitespace characters
     echo "$var"
 }
 
-function JoeBashLib_Test_Trim {
+function JoeBashLib_Test_Trim() {
     Test_Check "$(Trim        "")"              ""
     Test_Check "$(TrimLeft    "")"              ""
     Test_Check "$(TrimRight   "")"              ""
@@ -403,7 +403,7 @@ function JoeBashLib_Test_Trim {
 # \in  mode      - "base" = File Base wird ermittelt
 #                - "ext"  = File Ext wird ermittelt
 ########################################################################################################################
-function GetFileBaseExt {
+function GetFileBaseExt() {
     local filename="$1"
     local mode="$2"
     local name="$(basename "$filename")"
@@ -429,15 +429,15 @@ function GetFileBaseExt {
     return 0
 }
 
-function GetFileBase {
+function GetFileBase() {
     GetFileBaseExt "$1" base
 }
 
-function GetFileExt {
+function GetFileExt() {
     GetFileBaseExt "$1" ext
 }
 
-function JoeBashLib_Test_GetFileBaseExt {
+function JoeBashLib_Test_GetFileBaseExt() {
     Test_Check "$(GetFileExt "verzeichnis  /example.a")"       "a"
     Test_Check "$(GetFileExt "verzeichnis  /example.a.b.c.d")" "d"
     Test_Check "$(GetFileExt "verzeichnis  /example.")"        ""
@@ -480,7 +480,7 @@ function JoeBashLib_Test_GetFileBaseExt {
 ########################################################################################################################
 # Ausführung aller Tests
 ########################################################################################################################
-function JoeBashLib_Test_All {
+function JoeBashLib_Test_All() {
     JoeBashLib_Test_WithDots
     JoeBashLib_Test_Trim
     JoeBashLib_Test_GetFileBaseExt
