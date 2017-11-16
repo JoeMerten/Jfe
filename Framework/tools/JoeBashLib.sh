@@ -478,10 +478,42 @@ function JoeBashLib_Test_GetFileBaseExt() {
 
 
 ########################################################################################################################
+# Check for valid IPv4
+#-----------------------------------------------------------------------------------------------------------------------
+# Origin: http://www.linuxjournal.com/content/validating-ip-address-bash-script
+########################################################################################################################
+function validIPv4() {
+    local ip="$1"
+    if [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS="$IFS"
+        IFS='.'
+        ip=($ip)
+        IFS="$OIFS"
+        [[ "${ip[0]}" -le 255 && "${ip[1]}" -le 255 && "${ip[2]}" -le 255 && "${ip[3]}" -le 255 ]] && return 0
+    fi
+    return 1
+}
+
+
+function JoeBashLib_Test_validIPv4() {
+    Test_Check "$(validIPv4 "4.2.2.2"          && echo "0" || echo "$?")" "0"
+    Test_Check "$(validIPv4 "a.b.c.d"          && echo "0" || echo "$?")" "1"
+    Test_Check "$(validIPv4 "192.168.1.1"      && echo "0" || echo "$?")" "0"
+    Test_Check "$(validIPv4 "0.0.0.0"          && echo "0" || echo "$?")" "0"
+    Test_Check "$(validIPv4 "255.255.255.255"  && echo "0" || echo "$?")" "0"
+    Test_Check "$(validIPv4 "255.255.255.256"  && echo "0" || echo "$?")" "1"
+    Test_Check "$(validIPv4 "192.168.0.1"      && echo "0" || echo "$?")" "0"
+    Test_Check "$(validIPv4 "192.168.0"        && echo "0" || echo "$?")" "1"
+    Test_Check "$(validIPv4 "1234.123.123.123" && echo "0" || echo "$?")" "1"
+}
+
+
+########################################################################################################################
 # Ausführung aller Tests
 ########################################################################################################################
 function JoeBashLib_Test_All() {
     JoeBashLib_Test_WithDots
     JoeBashLib_Test_Trim
     JoeBashLib_Test_GetFileBaseExt
+    JoeBashLib_Test_validIPv4
 }
