@@ -314,16 +314,16 @@ def xtermDefaultColors():
 #  |_|  |_|\__,_|_|_| |_|
 ########################################################################################################################
 def main():
-   standardColors()
-   paletteColors()
-   rgbColors()
-   font()
-   charset()
-   resetAttributes()
-   frames()
-   standardVersusPaletteColors()
-   inverseCombinations()
-   #xtermDefaultColors()
+    standardColors()
+    paletteColors()
+    rgbColors()
+    font()
+    charset()
+    resetAttributes()
+    frames()
+    standardVersusPaletteColors()
+    inverseCombinations()
+    #xtermDefaultColors()
 
 
 ########################################################################################################################
