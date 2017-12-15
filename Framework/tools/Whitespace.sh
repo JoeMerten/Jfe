@@ -432,8 +432,10 @@ function DoFile {
         "Embedded OpenType (EOT)");;       # Kurioses bei: /D/git/N4/Embedded/Lpc43/Common/Lib/Lpcopen/lpcopen_2_12_lpcxpresso_ngx_xplorer_4330/lpc_chip_43xx_m0/inc/lpc_types.h
         "FORTRAN program,");;              # Kurioses bei: "/D/git/N4/Embedded/Lpc43/Common/Dok/Lpc Setup Notes.txt"
         ", init=0x454c, stat=0x0d44, dev=0x200a, bas=0x6923");; # Kurioses bei "UnittestStm/Cubemx/Unittest-Stm/Inc/stm32f4xx_hal_conf.h" unter Kubuntu 16.04
+        "Mathematica 3.0 notebook");;      # Kurioses bei: VistraSt10/Pu/Joe/IOCtrl.pas
 
-        "data");&
+        "data");; # Kurioses bei: VistraSt10/Pu/Joe/vStrSubs.pas
+
         "HIER NUR EIN DUMMY 2")
             # u8g_font_data.c
             Warning "$filename has type \"$type\" /  \"$strippedType\""
@@ -632,6 +634,10 @@ FILE_PATTERNS+=('.*\.htm')
 FILE_PATTERNS+=('.*\.html')
 FILE_PATTERNS+=('.*\.css')
 FILE_PATTERNS+=('.*\.js')
+
+# zus. für Pascal
+FILE_PATTERNS+=('.*\.pas')
+FILE_PATTERNS+=('.*\.inc')
 
 #DIRS=("Lib/Stm/Stm32F10x_StdPeriph_Lib_V3.5.0/Libraries")
 #FILE_PATTERNS=(".*")
