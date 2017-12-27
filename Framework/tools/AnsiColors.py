@@ -32,7 +32,7 @@
 # ╰─────────────────┴──────┴───────┴────────┴────────┴───────┴─────────┴─────────┴────────┴────────┴─────────┴─────────┴─────┴──────┴───────┴────────┴────────┴───────┴──────────╯
 # Notes / Issues:
 # ⚫ Kubuntu 16.04 konsole
-#   • applies bright colors for [1m instead of bold
+#   • applies bright colors for [1m (in case of standard fg color 30-37 is active), but also bold typeface (customizable)
 #   • blink slow [5m works, but blink fast [6m not
 # ⚫ macOS console
 #   • conceal text seems to be just fg=bg color, can be copied from console via clipboard
