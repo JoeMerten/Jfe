@@ -286,6 +286,15 @@ function setVersionVars() {
                      INSTALL_BASENAME="gcc-arm-none-eabi-6_3-2017q2"
                      ;;
 
+        # hmm, changed download origin and also naming conventions ...
+        # Gcc 7.2.1 20170904
+        # https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2
+        # https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-mac.tar.bz2
+        # https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-src.tar.bz2
+        7.2-2017-q4) URL_BASE="https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major"
+                     INSTALL_BASENAME="gcc-arm-none-eabi-7_2-2017q4"
+                     ;;
+
         *) Error "Sorry, version \"$GCC_ARM_VERSION\" is currently not supported"
         ;;
     esac
@@ -695,7 +704,7 @@ while (("$#")); do
     shift
 done
 
-[ "$GCC_ARM_VERSION" == "latest" ] && GCC_ARM_VERSION="6.3-2017-q2"
+[ "$GCC_ARM_VERSION" == "latest" ] && GCC_ARM_VERSION="7-2017-q4"
 
 if [ "$GCC_ARM_VERSION" == "" ]; then
     echo "Please specify toolchain version, e.g. \"4.9-2015-q2\"." >/dev/stderr
