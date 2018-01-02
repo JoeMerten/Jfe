@@ -18,7 +18,7 @@
 # ╭─────────────────┼──────┼───────┼────────┼────────┼───────┼─────────┼─────────┼────────┼────────┼─────────┼─────────┼─────┼──────┼───────┼────────┼────────┼───────┼──────────┤
 # │ Kubuntu konsole │bright│   -   │   ok   │   ok   │ slow  │   ok    │    -    │   -    │   -    │   ok    │   ok    │ ok  │  -   │   -   │   -    │   -    │  ok   │    ok    │
 # ├─────────────────┼──────┼───────┼────────┼────────┼───────┼─────────┼─────────┼────────┼────────┼─────────┼─────────┼─────┼──────┼───────┼────────┼────────┼───────┼──────────┤
-# │ Gnome terminal  │      │       │        │        │       │         │         │        │        │         │         │     │  -   │   -   │   -    │   -    │       │          │
+# │ Ubuntu terminal │  ok  │  ok   │   ok   │   ok   │   -   │   ok    │   ok    │   -    │   ok   │   ok    │   ok    │ ok  │  -   │   -   │   -    │   -    │  ok   │    ok    │
 # ├─────────────────┼──────┼───────┼────────┼────────┼───────┼─────────┼─────────┼────────┼────────┼─────────┼─────────┼─────┼──────┼───────┼────────┼────────┼───────┼──────────┤
 # │ macOS console   │  ok  │  ok   │   -    │   ok   │ slow  │   ok    │   ok    │   -    │   -    │   ok    │   ok    │  -  │  -   │   -   │   -    │   -    │  ok   │          │
 # ├─────────────────┼──────┼───────┼────────┼────────┼───────┼─────────┼─────────┼────────┼────────┼─────────┼─────────┼─────┼──────┼───────┼────────┼────────┼───────┼──────────┤
@@ -34,6 +34,10 @@
 # ⚫ Kubuntu 16.04 konsole
 #   • applies bright colors for [1m (in case of standard fg color 30-37 is active), but also bold typeface (customizable)
 #   • blink slow [5m works, but blink fast [6m not
+# ⚫ Ubuntu 17.10 terminal
+#   • standard color is bright white (best seen when underlined or inverse text)
+#   • [1m looks like a mixture of bold and bright, [2m looks like a mixture of faint and dark
+#   • conceal text can be copied into clipboard
 # ⚫ macOS console
 #   • conceal text seems to be just fg=bg color, can be copied from console via clipboard
 # ⚫ xterm testet version 322 in Kubuntu 16.04
